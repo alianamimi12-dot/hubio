@@ -13,7 +13,8 @@ export default function Overview() {
         const now = Date.now();
         const st = statsFor(db, user.id, now - 13 * 86400000, now);
         const pending = db.orders.filter((o) => o.status === "pending");
-        const noPay = !(store.payment?.banks?.length || store.payment?.qris);
+        const q = store.payment?.qris;
+        const noPay = !(store.payment?.banks?.length || (Array.isArray(q) ? q.length : q));
         const noProd = db.products.length === 0;
         const url = typeof window !== "undefined" ? `${window.location.origin}/${store.username}` : `/${store.username}`;
         const recent = db.orders.filter((o) => o.sellerId === user.id && o.status === "paid").sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
