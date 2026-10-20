@@ -18,7 +18,8 @@ export async function POST(req) {
     if (seller?.suspended) return Response.json({ error: "Toko ini sedang tidak aktif." }, { status: 404 });
     const { data: store } = await db.from("stores").select("payment").eq("user_id", prod.seller_id).single();
     const pay = store?.payment || {};
-    if (!(pay.banks?.length || pay.qris)) return Response.json({ error: "Penjual belum mengatur metode pembayaran." }, { status: 409 });
+    const qrisList = Array.isArray(pay.qris) ? pay.qris : pay.qris ? [{ id: "q0", label: "QRIS", url: pay.qris }] : [];
+    if (!(pay.banks?.length || qrisList.length)) return Response.json({ error: "Penjual belum mengatur metode pembayaran." }, { status: 409 });
     const { data: hasFile } = await db.from("product_files").select("product_id").eq("product_id", prod.id).maybeSingle();
     if (!hasFile) return Response.json({ error: "Produk ini belum siap dijual." }, { status: 409 });
 
