@@ -26,14 +26,29 @@ export default function Register() {
     if (RESERVED.includes(f.username)) return setErr("Username tidak tersedia.");
     setBusy(true);
     const c = sb();
-    const { data: ok } = await c.rpc("username_available", { p: f.username });
-    if (!ok) { setBusy(false); return setErr("Username sudah dipakai. Coba yang lain."); }
+    // Periksa username. Error pemeriksaan TIDAK boleh dibaca sebagai "sudah dipakai".
+    let free = null, why = "";
+    const r1 = await c.rpc("username_available", { p: f.username });
+    if (!r1.error && typeof r1.data === "boolean") free = r1.data;
+    else {
+      why = r1.error?.message || "";
+      const r2 = await c.from("public_stores").select("user_id").eq("username", f.username).maybeSingle(); // cadangan
+      if (!r2.error) free = !r2.data; else why = why || r2.error.message;
+    }
+    if (free === null) { setBusy(false); return setErr("Tidak bisa memeriksa username (" + why + "). Pastikan supabase/schema.sql sudah dijalankan di Supabase."); }
+    if (free === false) { setBusy(false); return setErr("Username sudah dipakai. Coba yang lain."); }
     const { data, error } = await c.auth.signUp({
       email: f.email.trim(), password: f.pw,
       options: { data: { name: f.name.trim(), username: f.username }, emailRedirectTo: window.location.origin + "/login" },
     });
     setBusy(false);
-    if (error) return setErr(/already registered/i.test(error.message) ? "Email sudah terdaftar. Silakan masuk." : error.message);
+    if (error) {
+      const m = error.message || "";
+      return setErr(/already registered/i.test(m) ? "Email sudah terdaftar. Silakan masuk."
+        : /database error/i.test(m) ? "Akun gagal dibuat di database. Jalankan supabase/migrations/003_robust_signup.sql lalu coba lagi. (" + m + ")"
+        : /rate limit/i.test(m) ? "Terlalu banyak percobaan. Tunggu beberapa menit lalu coba lagi."
+        : m);
+    }
     if (data.session) router.push("/dashboard/produk");
     else setInfo("Akun dibuat. Kami mengirim email konfirmasi. Buka emailnya, lalu masuk.");
   };
