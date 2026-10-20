@@ -16,7 +16,7 @@ export async function GET(req, { params }) {
     if (o.status === "pending") {
       const { data: st } = await db.from("stores").select("name, payment").eq("user_id", o.seller_id).single();
       const pay = st?.payment || {};
-      return Response.json({ ...base, storeName: st?.name, payment: { banks: pay.banks || [], qris: pay.qris || null, note: pay.note || "" } });
+      return Response.json({ ...base, storeName: st?.name, payment: { banks: pay.banks || [], qris: Array.isArray(pay.qris) ? pay.qris : pay.qris ? [{ id: "q0", label: "QRIS", url: pay.qris }] : [], note: pay.note || "" } });
     }
     if (o.status !== "paid") return Response.json(base);
 
