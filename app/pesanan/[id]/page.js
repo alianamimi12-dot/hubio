@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import Logo from "@/components/Logo";
 import { rupiah } from "@/lib/db";
+import ProofUpload from "@/components/ProofUpload";
 
 function Copy({ text, label = "Salin" }) {
   const [ok, setOk] = useState(false);
@@ -72,9 +73,7 @@ export default function Pesanan() {
             {pay.qris.length > 0 && <div className="small muted" style={{ marginTop: 6, textAlign: "center" }}>Scan salah satu QRIS, lalu masukkan nominal di atas.</div>}
             {pay.note && <p className="small muted" style={{ marginTop: 10, whiteSpace: "pre-wrap" }}>{pay.note}</p>}
           </div>
-          {res.buyerMarked
-            ? <div className="okmsg" role="status">Terima kasih. Penjual sudah diberi tahu dan akan mengecek pembayaranmu. Halaman ini otomatis berubah setelah dikonfirmasi.</div>
-            : <button className="btn btn-primary btn-block" onClick={mark} disabled={marking}>Saya sudah bayar</button>}
+                   <ProofUpload id={id} token={token()} sent={res.buyerMarked} onDone={load} />
           <p className="hint">Produk dikirim ke emailmu setelah penjual memastikan dana masuk. Simpan link halaman ini.</p>
         </div>
       )}
