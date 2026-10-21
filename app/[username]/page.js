@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { loadPublicStore, recordVisit, rupiah, effectivePrice, discountPct } from "@/lib/db";
 import { Problem } from "@/components/DashShell";
-import HtmlFrame from "@/components/HtmlFrame";
+import ProductDetail from "@/components/ProductDetail";
 
 const refParam = () => new URLSearchParams(window.location.search).get("ref") || "Langsung";
 
@@ -18,6 +18,9 @@ function Cover({ p }) {
       {p.discountPrice && <span className="off">-{discountPct(p)}%</span>}
     </div>
   );
+}
+function Avatar({ store, cls }) {
+  return <div className={cls}>{store.avatarUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={store.avatarUrl} alt="" /> : store.name.charAt(0).toUpperCase()}</div>;
 }
 
 export default function StorePage() {
@@ -83,7 +86,7 @@ export default function StorePage() {
         </div>
 
         <div className="storehead">
-          <div className="av">{store.name.charAt(0).toUpperCase()}</div>
+          <Avatar store={store} cls="av" />
           <h1>{store.name} {store.isPro && <span className="badge pro" style={{ verticalAlign: "middle" }}>Pro</span>}</h1>
           {store.bio && <p className="muted" style={{ marginTop: 6 }}>{store.bio}</p>}
           <div className="socials">
@@ -120,7 +123,7 @@ export default function StorePage() {
           <div className="sbg" onClick={() => setMenu(false)} />
           <aside className="sdrawer" aria-label="Menu toko">
             <div className="sd-head">
-              <div className="sd-av">{store.name.charAt(0).toUpperCase()}</div>
+              <Avatar store={store} cls="sd-av" />
               <b>{store.name}</b>
               <button aria-label="Tutup menu" onClick={() => setMenu(false)}>×</button>
             </div>
@@ -136,65 +139,17 @@ export default function StorePage() {
         </>
       )}
 
-      {pick && <ProductModal product={pick} onClose={() => setPick(null)} />}
-    </div>
-  );
-}
-
-function ProductModal({ product: p, onClose }) {
-  const router = useRouter();
-  const [step, setStep] = useState("detail");
-  const [f, setF] = useState({ name: "", email: "", phone: "", usePhone: false });
-  const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const buy = async (e) => {
-    e.preventDefault();
-    setErr(""); setBusy(true);
-    try {
-      const r = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ productId: p.id, name: f.name, email: f.email, phone: f.usePhone ? f.phone : "" }) });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "Gagal membuat pesanan.");
-      router.push(`/pesanan/${j.orderId}?t=${j.token}`);
-    } catch (e2) { setErr(e2.message); setBusy(false); }
-  };
-
-  return (
-    <div className="modalbg" onClick={onClose} role="dialog" aria-modal="true" aria-label={p.name}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="row between"><h2 style={{ fontSize: 22 }}>{step === "detail" ? p.name : "Checkout"}</h2><button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>Tutup</button></div>
-
-        {step === "detail" && (
-          <div>
-            {(p.landingUrl || p.coverUrl) && /* eslint-disable-next-line @next/next/no-img-element */ <img className="detailimg" style={{ marginTop: 14 }} src={p.landingUrl || p.coverUrl} alt={p.name} />}
-            <Price p={p} />
-            {p.description && <p className="desc">{p.description}</p>}
-            <HtmlFrame code={p.htmlCode} />
-            <button className="btn btn-primary btn-block" style={{ marginTop: 10 }} onClick={() => setStep("checkout")}>Beli sekarang</button>
-          </div>
-        )}
-
-        {step === "checkout" && (
-          <form onSubmit={buy}>
-            <div className="card" style={{ margin: "14px 0", background: "var(--mist)" }}>
-              <b>{p.name}</b><Price p={p} />
+      {pick && (
+        <div className="modalbg" onClick={() => setPick(null)} role="dialog" aria-modal="true" aria-label={pick.name}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="row between" style={{ marginBottom: 12 }}>
+              <Link href={`/${store.username}/${pick.id}`} className="small muted" style={{ textDecoration: "underline" }}>Buka halaman produk</Link>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPick(null)}>Tutup</button>
             </div>
-            <div className="field"><label htmlFor="bn">Nama</label><input id="bn" className="input" required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
-
-            <p className="small muted" style={{ margin: "14px 0 8px", fontWeight: 600 }}>Data yang dikirim ke penjual</p>
-            <label className="checkrow"><input type="checkbox" checked disabled readOnly /> Email (wajib)</label>
-            <input className="input" type="email" required placeholder="email@contoh.com" aria-label="Email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
-            <div className="hint">Produk dikirim ke email ini setelah pembayaranmu dikonfirmasi.</div>
-
-            <label className="checkrow" style={{ marginTop: 14 }}><input type="checkbox" checked={f.usePhone} onChange={(e) => setF({ ...f, usePhone: e.target.checked })} /> Tambahkan nomor HP (opsional)</label>
-            {f.usePhone && <input className="input" type="tel" inputMode="tel" required placeholder="08xxxxxxxxxx" aria-label="Nomor HP" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />}
-
-            {err && <div className="err" style={{ marginTop: 14 }} role="alert">{err}</div>}
-            <button className="btn btn-primary btn-block" style={{ marginTop: 18 }} disabled={busy}>{busy ? "Membuat pesanan…" : "Lanjut ke pembayaran"}</button>
-            <button type="button" className="btn btn-ghost btn-block" style={{ marginTop: 8 }} onClick={() => setStep("detail")}>Kembali</button>
-          </form>
-        )}
-      </div>
+            <ProductDetail product={pick} addons={(data.addons || []).filter((a) => a.productId === pick.id)} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
