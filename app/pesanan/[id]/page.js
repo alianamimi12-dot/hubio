@@ -84,6 +84,7 @@ export default function Pesanan() {
           <h1 style={{ fontSize: 26 }}>Pembayaran dikonfirmasi</h1>
           <p className="muted">{res.productName} · pesanan <b>{id}</b></p>
           {res.url ? <a className="btn btn-primary btn-block" href={res.url} target="_blank" rel="noopener noreferrer">{res.kind === "pdf" ? "Unduh PDF" : "Buka produk"}</a> : <p className="err">Penjual belum mengisi file produk. Hubungi penjual dengan nomor pesanan di atas.</p>}
+          {res.addons?.filter((a) => a.link).map((a) => <a key={a.name} className="btn btn-ghost btn-block" href={a.link} target="_blank" rel="noopener noreferrer">Buka add-on: {a.name}</a>)}
           <p className="hint">Salinan produk juga dikirim ke emailmu. Cek folder spam bila belum masuk.</p>
         </div>
       )}
