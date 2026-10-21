@@ -22,7 +22,7 @@ export default function PhoneMock({ variant = "large", className = "" }) {
         {[["Template Konten 30 Hari", "Rp49.000"], ["E-book Jualan Online", "Rp79.000"], ["Kelas Foto Produk", "Rp149.000"], ["Preset Warna", "Rp35.000"], ["Konsultasi 1 Jam", "Rp99.000"]].map(([n, p]) => <div className="tb" key={n}><span>{n}</span><span>{p}</span></div>)}
       </>}
       {variant === "hero" && <>
-        <div className="it"><div className="cvr"><em>-30%</em></div><b>Template Konten 30 Hari</b><div className="pr">Rp49.000<s>Rp70.000</s></div><span className="go">Beli sekarang</span></div>
+        <div className="it"><div className="cvr"><em>-30%</em></div><b>Template Konten 30 Hari</b><div className="pr">Rp49.000<s>Rp70.000</s></div><span className="go">Buy Now</span></div>
         <div className="tb"><span>E-book Jualan Online</span><span>Rp79.000</span></div>
         <div className="tb"><span>Kelas Foto Produk</span><span>Rp149.000</span></div>
       </>}
