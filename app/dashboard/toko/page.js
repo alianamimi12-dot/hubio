@@ -1,14 +1,16 @@
 "use client";
 import { useState } from "react";
 import DashShell from "@/components/DashShell";
-import { THEMES, RESERVED, uid, sb } from "@/lib/db";
+import { THEMES, RESERVED, uid, sb, uploadImage } from "@/lib/db";
 
 function Form({ s }) {
-  const { store, reload } = s;
+  const { store, user, reload } = s;
   const [f, setF] = useState({ ...store, socials: { instagram: "", tiktok: "", whatsapp: "", ...store.socials } });
   const [msg, setMsg] = useState(null);
   const [nl, setNl] = useState({ title: "", url: "" });
   const [hex, setHex] = useState(store.color || "#2B9BE6");
+  const [avatar, setAvatar] = useState(null);
+  const [busy, setBusy] = useState(false);
   const color = /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : null;
 
   const save = async (e) => {
@@ -17,20 +19,40 @@ function Form({ s }) {
     if (un.length < 3) return setMsg({ bad: "Username minimal 3 karakter." });
     if (RESERVED.includes(un)) return setMsg({ bad: "Username tidak tersedia." });
     if (!color) return setMsg({ bad: "Kode warna harus 6 digit heksadesimal, contoh #399292." });
-    const { error } = await sb().from("stores").update({ username: un, name: f.name.trim(), bio: f.bio, color, socials: f.socials, links: f.links || [] }).eq("user_id", store.userId);
-    if (error) return setMsg({ bad: error.code === "23505" ? "Username sudah dipakai." : error.code === "23514" ? "Username hanya boleh huruf kecil, angka, titik, dan garis bawah (3-30 karakter)." : error.message });
-    setMsg({ ok: "Perubahan tersimpan." });
-    reload();
+    setBusy(true); setMsg(null);
+    try {
+      let avatarUrl = f.avatarUrl || null;
+      if (avatar) avatarUrl = await uploadImage(avatar, user.id, "avatar");
+      const { error } = await sb().from("stores").update({ username: un, name: f.name.trim(), bio: f.bio, color, avatar_url: avatarUrl, socials: f.socials, links: f.links || [] }).eq("user_id", store.userId);
+      if (error) throw error;
+      setF({ ...f, avatarUrl: avatarUrl || "" }); setAvatar(null);
+      setMsg({ ok: "Perubahan tersimpan." });
+      reload();
+    } catch (er) {
+      setMsg({ bad: er.code === "23505" ? "Username sudah dipakai." : er.code === "23514" ? "Username hanya boleh huruf kecil, angka, titik, dan garis bawah (3-30 karakter)." : er.message });
+    }
+    setBusy(false);
   };
   const addLink = () => {
     if (!nl.title || !nl.url) return;
     setF({ ...f, links: [...(f.links || []), { id: uid("l"), ...nl }] }); setNl({ title: "", url: "" });
   };
+  const shown = avatar ? URL.createObjectURL(avatar) : f.avatarUrl;
 
   return (
     <form className="stack" onSubmit={save}>
       <div className="card">
         <h3>Profil toko</h3>
+        <div className="field"><label htmlFor="sa">Foto profil toko</label>
+          <div className="row">
+            {shown ? /* eslint-disable-next-line @next/next/no-img-element */ <img className="avprev" src={shown} alt="Foto profil" /> : <div className="avprev" style={{ display: "grid", placeItems: "center", font: "700 30px var(--fd)", color: "#fff", background: color || "#2B9BE6" }}>{(f.name || "?").charAt(0).toUpperCase()}</div>}
+            <div style={{ flex: 1 }}>
+              <input id="sa" className="input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(e) => setAvatar(e.target.files?.[0] || null)} />
+              {f.avatarUrl && !avatar && <button type="button" className="btn btn-danger btn-sm" style={{ marginTop: 8 }} onClick={() => setF({ ...f, avatarUrl: "" })}>Hapus foto</button>}
+            </div>
+          </div>
+          <div className="hint">JPG, PNG, WEBP, atau GIF, maksimal 5 MB. Sebaiknya persegi.</div>
+        </div>
         <div className="field"><label htmlFor="sn">Nama toko</label><input id="sn" className="input" required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
         <div className="field"><label htmlFor="su">Username</label><input id="su" className="input" required value={f.username} onChange={(e) => setF({ ...f, username: e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, "") })} /><div className="hint">Link toko: /{f.username}</div></div>
         <div className="field"><label htmlFor="sb">Deskripsi</label><textarea id="sb" className="input" value={f.bio} onChange={(e) => setF({ ...f, bio: e.target.value })} /></div>
@@ -43,7 +65,7 @@ function Form({ s }) {
           <div className="chips" style={{ marginTop: 10 }}>{Object.entries(THEMES).map(([n, c]) => (
             <button type="button" key={n} className={"chip" + (color && color.toLowerCase() === c.toLowerCase() ? " on" : "")} onClick={() => setHex(c)}><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 9, background: c, marginRight: 6, verticalAlign: "-1px" }} />{n}</button>
           ))}</div>
-          <div className="hint">Warna dipakai untuk foto profil, tombol beli, dan sorotan di halaman tokomu.</div>
+          <div className="hint">Warna dipakai untuk tombol beli dan sorotan di halaman tokomu.</div>
         </div>
       </div>
       <div className="card">
@@ -63,7 +85,7 @@ function Form({ s }) {
       </div>
       {msg?.bad && <div className="err" role="alert">{msg.bad}</div>}
       {msg?.ok && <div className="okmsg" role="status">{msg.ok}</div>}
-      <button className="btn btn-primary">Simpan perubahan</button>
+      <button className="btn btn-primary" disabled={busy}>{busy ? "Menyimpan…" : "Simpan perubahan"}</button>
     </form>
   );
 }
