@@ -51,7 +51,7 @@ function View({ s }) {
         <div className={"tx" + (o.status === "pending" && o.buyerPaidAt ? " mark" : "")} key={o.id}>
           <div className="row between wrap">
             <div><div className="small muted">Cocokkan di mutasi</div><div className="amt">{rupiah(o.total)}</div><div className="small muted">harga {rupiah(o.amount)} + kode unik {o.uniqueCode}</div></div>
-            <div className="right"><b>{o.productName}</b><div className="small muted">{o.id} · {fullDate(o.createdAt)}</div>
+            <div className="right"><b><b>{o.productName}</b>{o.addons?.length > 0 && <div className="small">+ {o.addons.map((a) => a.name).join(", ")}</div>}<div className="small muted">{o.id} · {fullDate(o.createdAt)}</div>
               {o.status === "pending" && o.buyerPaidAt && <span className="badge wait">Pembeli menandai sudah bayar</span>}
               {o.status === "paid" && <span className="badge ok">{o.deliveredAt ? "Produk terkirim" : "Email belum terkirim"}</span>}</div>
           </div>
