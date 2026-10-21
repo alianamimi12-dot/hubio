@@ -8,13 +8,16 @@ function Form({ s }) {
   const [f, setF] = useState({ ...store, socials: { instagram: "", tiktok: "", whatsapp: "", ...store.socials } });
   const [msg, setMsg] = useState(null);
   const [nl, setNl] = useState({ title: "", url: "" });
+  const [hex, setHex] = useState(store.color || "#2B9BE6");
+  const color = /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : null;
 
   const save = async (e) => {
     e.preventDefault();
     const un = f.username.trim().toLowerCase();
     if (un.length < 3) return setMsg({ bad: "Username minimal 3 karakter." });
     if (RESERVED.includes(un)) return setMsg({ bad: "Username tidak tersedia." });
-    const { error } = await sb().from("stores").update({ username: un, name: f.name.trim(), bio: f.bio, color: f.color, socials: f.socials, links: f.links || [] }).eq("user_id", store.userId);
+    if (!color) return setMsg({ bad: "Kode warna harus 6 digit heksadesimal, contoh #399292." });
+    const { error } = await sb().from("stores").update({ username: un, name: f.name.trim(), bio: f.bio, color, socials: f.socials, links: f.links || [] }).eq("user_id", store.userId);
     if (error) return setMsg({ bad: error.code === "23505" ? "Username sudah dipakai." : error.code === "23514" ? "Username hanya boleh huruf kecil, angka, titik, dan garis bawah (3-30 karakter)." : error.message });
     setMsg({ ok: "Perubahan tersimpan." });
     reload();
@@ -31,10 +34,17 @@ function Form({ s }) {
         <div className="field"><label htmlFor="sn">Nama toko</label><input id="sn" className="input" required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
         <div className="field"><label htmlFor="su">Username</label><input id="su" className="input" required value={f.username} onChange={(e) => setF({ ...f, username: e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, "") })} /><div className="hint">Link toko: /{f.username}</div></div>
         <div className="field"><label htmlFor="sb">Deskripsi</label><textarea id="sb" className="input" value={f.bio} onChange={(e) => setF({ ...f, bio: e.target.value })} /></div>
-        <div className="field"><label>Warna toko</label>
-          <div className="chips">{Object.entries(THEMES).map(([n, c]) => (
-            <button type="button" key={n} className={"chip" + (f.color === c ? " on" : "")} onClick={() => setF({ ...f, color: c })}><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 9, background: c, marginRight: 6, verticalAlign: "-1px" }} />{n}</button>
-          ))}</div></div>
+        <div className="field"><label htmlFor="sc">Warna toko</label>
+          <div className="colorrow">
+            <input type="color" aria-label="Pilih warna dari palet" value={color || "#2B9BE6"} onChange={(e) => setHex(e.target.value)} />
+            <input id="sc" className="input" style={{ maxWidth: 150 }} placeholder="#399292" maxLength={7} value={hex} onChange={(e) => { let v = e.target.value.trim(); if (v && v[0] !== "#") v = "#" + v; setHex(v); }} />
+            <span className="small" style={{ color: color ? "var(--ok)" : "var(--bad)" }}>{color ? "Kode warna valid" : "Format: # lalu 6 huruf/angka, mis. #399292"}</span>
+          </div>
+          <div className="chips" style={{ marginTop: 10 }}>{Object.entries(THEMES).map(([n, c]) => (
+            <button type="button" key={n} className={"chip" + (color && color.toLowerCase() === c.toLowerCase() ? " on" : "")} onClick={() => setHex(c)}><span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 9, background: c, marginRight: 6, verticalAlign: "-1px" }} />{n}</button>
+          ))}</div>
+          <div className="hint">Warna dipakai untuk foto profil, tombol beli, dan sorotan di halaman tokomu.</div>
+        </div>
       </div>
       <div className="card">
         <h3>Media sosial</h3>
