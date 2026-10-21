@@ -29,7 +29,7 @@ function View({ s }) {
         </div>}
       </div>
       <div className="kpis">
-        <div className="kpi hl"><div className="l">Total omzet (dikonfirmasi)</div><div className="v">{rupiah(st.revenue)}</div></div>
+        <div className="kpi hl"><div className="l">Total omzet</div><div className="v">{rupiah(st.revenue)}</div></div>
         <div className="kpi"><div className="l">Transaksi berhasil</div><div className="v">{st.orders}</div></div>
         <div className="kpi"><div className="l">Rata-rata transaksi</div><div className="v">{rupiah(st.avg)}</div></div>
         <div className="kpi"><div className="l">Pengunjung toko</div><div className="v">{st.visitors}</div></div>
