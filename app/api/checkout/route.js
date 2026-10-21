@@ -4,10 +4,11 @@ import { notifyOrderCreated } from "@/lib/email";
 export const dynamic = "force-dynamic";
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE = /^[0-9+\-\s]{8,18}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(req) {
   try {
-    const { productId, name, email, phone } = await req.json();
+    const { productId, name, email, phone, addonIds } = await req.json();
     if (!productId || !name?.trim() || !EMAIL.test(email || "")) return Response.json({ error: "Nama atau email belum benar." }, { status: 400 });
     if (phone && !PHONE.test(phone)) return Response.json({ error: "Nomor HP tidak valid." }, { status: 400 });
 
@@ -23,9 +24,16 @@ export async function POST(req) {
     const { data: hasFile } = await db.from("product_files").select("product_id").eq("product_id", prod.id).maybeSingle();
     if (!hasFile) return Response.json({ error: "Produk ini belum siap dijual." }, { status: 409 });
 
-    // Harga selalu dari database. Kode unik 1-999: total transfer tiap pesanan menunggu dijamin berbeda
-    // oleh indeks unik di database, jadi kalau bentrok kita coba kode lain.
-    const amount = prod.discount_price ?? prod.price;
+    // Add-on yang dipilih: harga dan tautan SELALU diambil dari database, bukan dari browser
+    let addons = [];
+    const ids = Array.isArray(addonIds) ? addonIds.filter((x) => typeof x === "string" && UUID.test(x)).slice(0, 20) : [];
+    if (ids.length) {
+      const { data: rows } = await db.from("product_addons").select("id, name, price, link").eq("product_id", prod.id).eq("active", true).in("id", ids);
+      addons = (rows || []).map((a) => ({ id: a.id, name: a.name, price: a.price, link: a.link || null }));
+    }
+    const amount = (prod.discount_price ?? prod.price) + addons.reduce((s, a) => s + a.price, 0);
+
+    // Kode unik 1-999: total transfer tiap pesanan menunggu dijamin berbeda oleh indeks unik di database.
     const used = new Set();
     let order = null, lastErr = null;
     for (let i = 0; i < 40 && !order; i++) {
@@ -34,13 +42,13 @@ export async function POST(req) {
       const { data, error } = await db.from("orders").insert({
         seller_id: prod.seller_id, product_id: prod.id, product_name: prod.name,
         buyer_name: name.trim().slice(0, 80), buyer_email: email.trim().toLowerCase(), buyer_phone: phone?.trim() || null,
-        amount, unique_code: code,
+        amount, unique_code: code, addons,
       }).select("id, seller_id, product_name, buyer_name, buyer_email, buyer_phone, amount, unique_code, total, access_token").single();
       if (!error) order = data; else if (error.code !== "23505") throw error; else lastErr = error;
     }
     if (!order) throw lastErr || new Error("Gagal membuat pesanan. Coba lagi.");
 
-    await notifyOrderCreated(db, order, siteUrl(req)); // tidak melempar error; email bersifat best-effort
+    await notifyOrderCreated(db, order, siteUrl(req)); // best-effort, tidak melempar error
     return Response.json({ orderId: order.id, token: order.access_token });
   } catch (e) {
     return Response.json({ error: e.message || "Terjadi kesalahan." }, { status: 500 });
