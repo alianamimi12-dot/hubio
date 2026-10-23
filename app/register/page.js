@@ -14,6 +14,8 @@ export default function Register() {
   useEffect(() => {
     const u = (new URLSearchParams(window.location.search).get("u") || "").toLowerCase().replace(/[^a-z0-9_.]/g, "").slice(0, 30);
     if (u) setF((x) => ({ ...x, username: u }));
+    const rf = (new URLSearchParams(window.location.search).get("ref") || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 16);
+    if (rf) sessionStorage.setItem("hubio_ref", rf); // simpan kode referral sampai pendaftaran selesai
   }, []);
   const set = (k) => (e) => setF({ ...f, [k]: k === "username" ? e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, "") : e.target.value });
 
@@ -39,7 +41,7 @@ export default function Register() {
     if (free === false) { setBusy(false); return setErr("Username sudah dipakai. Coba yang lain."); }
     const { data, error } = await c.auth.signUp({
       email: f.email.trim(), password: f.pw,
-      options: { data: { name: f.name.trim(), username: f.username }, emailRedirectTo: window.location.origin + "/login" },
+      options: { data: { name: f.name.trim(), username: f.username, ref: sessionStorage.getItem("hubio_ref") || "" }, emailRedirectTo: window.location.origin + "/login" },
     });
     setBusy(false);
     if (error) {
