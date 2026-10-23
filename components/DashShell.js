@@ -12,6 +12,7 @@ const ICONS = {
   wallet: "M3 7h15a3 3 0 013 3v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7zM3 7l12-3v3M17 14h2",
   store: "M3 9l2-5h14l2 5M3 9h18M5 9v11h14V9M10 20v-5h4v5",
   chart: "M4 20V4M4 20h16M8 16v-4M12 16V8M16 16v-6",
+  coins: "M12 3a8 4 0 100 8 8 4 0 000-8zM4 7v5c0 2.2 3.6 4 8 4s8-1.8 8-4V7M4 12v5c0 2.2 3.6 4 8 4s8-1.8 8-4v-5",
   ext: "M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5",
 };
 function Ico({ n }) {
@@ -25,6 +26,7 @@ const NAV = [
   ["/dashboard/pembayaran", "Pembayaran", "wallet"],
   ["/dashboard/toko", "Toko", "store"],
   ["/dashboard/statistik", "Statistik", "chart"],
+  ["/dashboard/saldo", "Saldo & Promosi", "coins"],
 ];
 
 export function Problem({ error }) {
